@@ -423,7 +423,6 @@ function playMissSound(){
 const BPM = 100;
 const beatSec = 60/BPM;
 const PRE_ROLL_SECONDS = 3;
-const NOTES_START_AT = 1;
 const totalBeats = 44;
 const ROUND_SECONDS = 30;
 const fallDuration = 1.1;
@@ -459,10 +458,11 @@ function buildEvents(){
       if(Math.random()<0.55) events.push({time:t+beatSec/2, lane:pickLane(), judged:false});
     }
   }
+  events = events.filter(e => e.time >= PRE_ROLL_SECONDS + fallDuration);
   events.sort((a,b)=>a.time-b.time);
   events.forEach(e => {
-    e.spawnTime = Math.max(NOTES_START_AT, e.time - fallDuration);
-    e.fallDur = e.time - e.spawnTime;
+    e.spawnTime = e.time - fallDuration;
+    e.fallDur = fallDuration;
   });
 }
 
