@@ -111,7 +111,10 @@
   #gameScreen{justify-content:flex-start;}
   .hud{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
   .hud .score{font-size:22px;font-weight:800;}
-  .hud .combo{font-size:14px;color:var(--gold);font-weight:700;min-height:18px;}
+  .hud .combo{font-size:16px;color:var(--gold);font-weight:800;transition:transform .15s ease;}
+  .hud .combo.pop{animation:pop .25s ease;}
+  .hud .combo.shake{animation:shake .3s ease;}
+  .hud .combo.hype{animation:hype .4s ease;}
 
   .timerRow{width:100%;display:flex;align-items:center;gap:8px;margin-bottom:6px;}
   .timerRow .time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:32px;}
@@ -265,8 +268,7 @@
     <div class="screen" id="gameScreen" hidden>
       <div class="hud">
         <div class="score" id="scoreVal">0</div>
-        <div class="avatar" id="avatarGame" style="width:38px;height:38px;margin:0;"></div>
-        <div class="combo" id="comboVal"></div>
+        <div class="combo" id="comboVal">Комбо: 0</div>
       </div>
       <div class="timerRow">
         <span class="time" id="timeLeft">0:00</span>
@@ -418,7 +420,6 @@ const stage = document.getElementById('stage');
 const countdownEl = document.getElementById('countdown');
 const scoreVal = document.getElementById('scoreVal');
 const comboVal = document.getElementById('comboVal');
-const avatarGame = document.getElementById('avatarGame');
 
 function dancerFigure(x, y, scale, color, delay){
   return `
@@ -450,14 +451,7 @@ function trioSVG(){
   </svg>`;
 }
 
-function soloSVG(){
-  return `<svg viewBox="-30 -58 60 116">
-    ${dancerFigure(0, 10, 0.62, '#ff4f9a', '0s')}
-  </svg>`;
-}
-
 document.getElementById('avatarStart').innerHTML = trioSVG();
-avatarGame.innerHTML = soloSVG();
 
 const playerNameInput = document.getElementById('playerNameInput');
 const timeLeftEl = document.getElementById('timeLeft');
@@ -552,7 +546,7 @@ function formatTime(sec){
 function startGame(){
   score = 0; combo = 0; maxCombo = 0; perfectCount = 0; goodCount = 0; missCount = 0;
   scoreVal.textContent = '0';
-  comboVal.textContent = '';
+  comboVal.textContent = 'Комбо: 0';
   noteEls.forEach(el => el.remove());
   noteEls = new Map();
 
@@ -602,7 +596,7 @@ function loop(){
     if(!e.judged && remaining < -MISS_WIN){
       e.judged = true;
       combo = 0;
-      comboVal.textContent = '';
+      comboVal.textContent = 'Комбо: 0';
       missCount++;
       flashAvatar('shake');
     }
@@ -634,9 +628,9 @@ function loop(){
 }
 
 function flashAvatar(cls){
-  avatarGame.classList.remove('pop','shake','hype');
-  void avatarGame.offsetWidth;
-  avatarGame.classList.add(cls);
+  comboVal.classList.remove('pop','shake','hype');
+  void comboVal.offsetWidth;
+  comboVal.classList.add(cls);
 }
 
 function spawnBurst(lane, big){
@@ -728,7 +722,7 @@ function hitLane(lane){
   }
   maxCombo = Math.max(maxCombo, combo);
   scoreVal.textContent = score;
-  comboVal.textContent = combo > 1 ? combo + 'x комбо' : '';
+  comboVal.textContent = (combo >= 5 ? '🔥 ' : '') + 'Комбо: ' + combo;
 }
 
 document.addEventListener('keydown', (ev) => {
