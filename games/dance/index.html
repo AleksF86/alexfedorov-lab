@@ -210,9 +210,14 @@
   }
 
   /* end screen */
-  #endScreen .rank{font-size:64px;font-weight:900;margin-bottom:4px;
+  #endScreen .rank{font-size:30px;font-weight:900;margin-bottom:10px;max-width:100%;overflow-wrap:break-word;
     background:linear-gradient(90deg,var(--pink),var(--purple),var(--cyan));
     -webkit-background-clip:text;background-clip:text;color:transparent;}
+  .rankBadge{
+    display:inline-block;padding:5px 16px;border-radius:20px;margin-bottom:16px;
+    background:var(--panel2);border:1px solid var(--border);
+    font-size:13px;font-weight:800;color:var(--gold);
+  }
   #endScreen .msg{font-size:16px;font-weight:700;margin-bottom:18px;}
   .statrow{display:flex;gap:24px;margin-bottom:26px;}
   .statrow div{text-align:center;}
@@ -285,7 +290,8 @@
     </div>
 
     <div class="screen" id="endScreen" hidden>
-      <div class="rank" id="rankVal">S</div>
+      <div class="rank" id="rankVal">Игрок</div>
+      <div class="rankBadge" id="rankBadgeVal">Ранг S</div>
       <div class="msg" id="rankMsg">Огонь!</div>
       <div class="statrow">
         <div><div class="num" id="finalScore">0</div><div class="lbl">очки</div></div>
@@ -807,12 +813,13 @@ function endGame(){
   document.getElementById('finalAcc').textContent = acc + '%';
 
   let rank, msg;
-  if(acc >= 95){ rank='S'; msg='Невероятно! Ты рождена для сцены 🔥'; }
+  if(acc >= 95){ rank='S'; msg='Невероятно! Это выступление достойно сцены 🔥'; }
   else if(acc >= 85){ rank='A'; msg='Огонь! Почти без ошибок 💥'; }
   else if(acc >= 70){ rank='B'; msg='Хорошо! Чувство ритма есть 🎶'; }
   else if(acc >= 50){ rank='C'; msg='Неплохо, но можно точнее 👍'; }
   else { rank='D'; msg='Потренируйся ещё разок! 💃'; }
-  document.getElementById('rankVal').textContent = rank;
+  document.getElementById('rankVal').textContent = currentPlayerName();
+  document.getElementById('rankBadgeVal').textContent = 'Ранг ' + rank;
   document.getElementById('rankMsg').textContent = msg;
 
   saveAndLoadHistory(score, maxCombo, acc, rank);
