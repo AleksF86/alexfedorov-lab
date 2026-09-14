@@ -360,8 +360,42 @@ function beep(time, freq, dur, type, vol){
   osc.stop(time + dur);
 }
 function playKick(t){ beep(t, 110, 0.18, 'sine', 0.5); }
-function playTick(t){ beep(t, 720, 0.06, 'triangle', 0.22); }
 function playCount(t){ beep(t, 440, 0.12, 'square', 0.3); }
+
+function playHat(t, vol){
+  const len = audioCtx.sampleRate * 0.045;
+  const buffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<len;i++) data[i] = (Math.random()*2-1) * (1 - i/len);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.value = 7000;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+  src.connect(filter).connect(gain).connect(audioCtx.destination);
+  src.start(t);
+}
+
+const CHORDS = [
+  { bass: 110.00, notes: [220.00, 261.63, 329.63] },
+  { bass: 87.31,  notes: [174.61, 220.00, 261.63] },
+  { bass: 130.81, notes: [261.63, 329.63, 392.00] },
+  { bass: 98.00,  notes: [196.00, 246.94, 293.66] },
+];
+
+function playHitSound(level){
+  const t = audioCtx.currentTime;
+  const freq = 523.25 * Math.pow(2, Math.min(level, 18) / 12);
+  beep(t, freq, 0.16, 'triangle', 0.28);
+  beep(t, freq * 1.5, 0.16, 'sine', 0.12);
+}
+function playMissSound(){
+  const t = audioCtx.currentTime;
+  beep(t, 140, 0.18, 'sine', 0.18);
+}
 
 const BPM = 100;
 const beatSec = 60/BPM;
@@ -410,9 +444,18 @@ function scheduleAudio(){
     playCount(base + b*beatSec);
   }
   for(let b=0;b<totalBeats;b++){
-    playKick(base + (leadInBeats+b)*beatSec);
+    const t = base + (leadInBeats+b)*beatSec;
+    const chord = CHORDS[Math.floor(b/4) % CHORDS.length];
+    playKick(t);
+    if(b % 2 === 0){
+      beep(t, chord.bass, 0.3, 'triangle', 0.22);
+    }
+    if(b % 4 === 0){
+      chord.notes.forEach(f => beep(t, f, 0.5, 'sawtooth', 0.05));
+    }
+    playHat(t, 0.1);
+    playHat(t + beatSec/2, 0.07);
   }
-  events.forEach(e => playTick(base + e.time));
   return base;
 }
 
@@ -710,6 +753,7 @@ function hitLane(lane){
     showFx(lane, 'Идеально!', 'var(--gold)');
     spawnBurst(lane, true);
     flashAvatar(combo >= 15 ? 'hype' : 'pop');
+    playHitSound(combo);
   } else if(bestDiff <= GOOD_WIN){
     score += 50 + combo;
     combo++;
@@ -717,11 +761,13 @@ function hitLane(lane){
     showFx(lane, 'Хорошо', 'var(--good)');
     spawnBurst(lane, false);
     flashAvatar('pop');
+    playHitSound(combo);
   } else {
     combo = 0;
     missCount++;
     showFx(lane, 'Мимо', '#ff5b6a');
     flashAvatar('shake');
+    playMissSound();
   }
   maxCombo = Math.max(maxCombo, combo);
   scoreVal.textContent = score;
