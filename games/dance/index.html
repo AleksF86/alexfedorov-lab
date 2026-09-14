@@ -39,6 +39,7 @@
     padding:16px 12px 24px;
     overflow-x:hidden;
   }
+  button, input{font-family:inherit;}
   .wrap{width:100%;max-width:460px;display:flex;flex-direction:column;align-items:center;flex:1;}
   .top{width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
   a.back{color:var(--muted);text-decoration:none;font-size:13px;}
@@ -219,10 +220,12 @@
   .statrow .lbl{font-size:11px;color:var(--muted);}
   .endbtns{display:flex;gap:10px;}
   .endbtns button, .endbtns a{
-    padding:13px 20px;border-radius:12px;border:1px solid var(--border);
-    background:var(--panel2);color:var(--text);font-size:14px;font-weight:700;
-    text-decoration:none;cursor:pointer;
+    flex:1;text-align:center;box-sizing:border-box;
+    font-family:inherit;padding:13px 12px;border-radius:12px;border:1px solid var(--border);
+    background:var(--panel2);color:var(--text);font-size:13px;font-weight:700;
+    text-decoration:none;cursor:pointer;white-space:nowrap;
   }
+  #homeBtn{background:linear-gradient(90deg,var(--gold),var(--pink));border:none;color:#160c24;box-shadow:0 4px 14px rgba(245,210,63,.3);}
   .endbtns button.primary{background:linear-gradient(90deg,var(--pink),var(--purple));border:none;color:#fff;}
   #endStatsBtn{background:linear-gradient(90deg,var(--cyan),var(--purple));border:none;color:#fff;box-shadow:0 4px 14px rgba(51,230,255,.3);}
 
@@ -294,7 +297,7 @@
         <div class="hLine"><span>Сыграно попыток</span><b id="playCountVal">-</b></div>
       </div>
       <div class="endbtns">
-        <a href="/">На главную</a>
+        <a href="/" id="homeBtn">На главную</a>
         <button id="endStatsBtn">Статистика</button>
         <button class="primary" id="againBtn">Играть ещё</button>
       </div>
