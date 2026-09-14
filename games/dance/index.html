@@ -261,7 +261,6 @@
   .pdName{font-size:19px;font-weight:800;
     background:linear-gradient(90deg,var(--pink),var(--purple));
     -webkit-background-clip:text;background-clip:text;color:transparent;}
-  .pdBest{font-size:13px;color:var(--gold);font-weight:700;}
 </style>
 </head>
 <body>
@@ -573,12 +572,15 @@ async function openStats(returnScreen){
   renderStatsList();
 }
 
+let statsPlayersCache = [];
+
 async function renderStatsList(){
   statsList.innerHTML = '<div class="statsEmpty">Загрузка…</div>';
   try {
     const res = await fetch('/api/stats.php?game=dance');
     const data = await res.json();
     if(data.ok && data.players.length > 0){
+      statsPlayersCache = data.players;
       statsList.innerHTML = data.players.map((p, i) => `
         <div class="statsRow" data-name="${escapeHtml(p.player_name)}">
           <div class="pos">${i+1}</div>
@@ -601,33 +603,24 @@ statsList.addEventListener('click', (ev) => {
   showPlayerDetail(row.dataset.name);
 });
 
-async function showPlayerDetail(name){
-  statsList.innerHTML = '<div class="statsEmpty">Загрузка…</div>';
-  try {
-    const res = await fetch('/api/history.php?game=dance&player=' + encodeURIComponent(name));
-    const data = await res.json();
-    if(!data.ok) throw new Error('bad response');
+function showPlayerDetail(name){
+  const p = statsPlayersCache.find(pl => pl.player_name === name);
 
-    const rows = data.history.map(h => `
-      <div class="statsRow">
-        <div class="pname">${new Date(h.created_at).toLocaleDateString('ru-RU')}</div>
-        <div class="pgames">${h.accuracy}% · ${RANK_TITLES[h.rank_letter] || h.rank_letter}</div>
-        <div class="pscore">${h.score}</div>
-      </div>
-    `).join('') || '<div class="statsEmpty">Пока нет сыгранных партий</div>';
-
-    statsList.innerHTML = `
-      <button class="backToList" id="backToListBtn">← Все игроки</button>
-      <div class="playerDetailHead">
-        <div class="pdName">${escapeHtml(name)}</div>
-        <div class="pdBest">Рекорд: ${data.best ? data.best.score : '—'}</div>
-      </div>
-      ${rows}
-    `;
-    document.getElementById('backToListBtn').onclick = renderStatsList;
-  } catch(e){
-    statsList.innerHTML = '<div class="statsEmpty">Не удалось загрузить данные игрока</div>';
-  }
+  statsList.innerHTML = `
+    <button class="backToList" id="backToListBtn">← Все игроки</button>
+    <div class="playerDetailHead">
+      <div class="pdName">${escapeHtml(name)}</div>
+    </div>
+    <div class="statsRow">
+      <div class="pname">Лучший результат</div>
+      <div class="pscore">${p ? p.best_score : '—'}</div>
+    </div>
+    <div class="statsRow">
+      <div class="pname">Лучшее комбо</div>
+      <div class="pscore">${p ? p.best_combo : '—'}</div>
+    </div>
+  `;
+  document.getElementById('backToListBtn').onclick = renderStatsList;
 }
 
 document.getElementById('statsBtn').onclick = () => openStats(startScreen);
