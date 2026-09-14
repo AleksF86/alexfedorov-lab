@@ -619,6 +619,10 @@ function showPlayerDetail(name){
       <div class="pname">Лучшее комбо</div>
       <div class="pscore">${p ? p.best_combo : '—'}</div>
     </div>
+    <div class="statsRow">
+      <div class="pname">Лучшая точность</div>
+      <div class="pscore">${p ? p.best_accuracy + '%' : '—'}</div>
+    </div>
   `;
   document.getElementById('backToListBtn').onclick = renderStatsList;
 }

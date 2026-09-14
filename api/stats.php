@@ -17,6 +17,7 @@ try {
                 MAX(score) AS best_score,
                 COUNT(*) AS games_played,
                 MAX(max_combo) AS best_combo,
+                MAX(accuracy) AS best_accuracy,
                 MAX(created_at) AS last_played
          FROM game_scores
          WHERE game = :game
