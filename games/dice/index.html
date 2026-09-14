@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Кубики — кто больше</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<style>
+  :root{
+    --bg:#0f1117;
+    --card:#171a23;
+    --card-hover:#1e2230;
+    --text:#e8e9ee;
+    --muted:#8a8f9e;
+    --accent:#5b8cff;
+    --accent-dim:#3a4a7a;
+    --gold:#f5c04a;
+    --border:#252a38;
+    --danger:#ff5b6a;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:24px 16px 48px;
+    min-height:100%;
+  }
+  .top{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+  a.back{color:var(--muted);text-decoration:none;font-size:14px;}
+  h1{font-size:20px;margin:0;}
+  .wrap{width:100%;max-width:480px;}
+
+  /* setup screen */
+  #setup{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;}
+  #setup label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px;}
+  .count-row{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+  .count-row button{
+    width:40px;height:40px;border-radius:10px;border:1px solid var(--border);
+    background:var(--card-hover);color:var(--text);font-size:18px;cursor:pointer;
+  }
+  .count-row span{font-size:20px;font-weight:600;min-width:24px;text-align:center;}
+  .names{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+  .names input{
+    background:var(--bg);border:1px solid var(--border);border-radius:10px;
+    padding:10px 12px;color:var(--text);font-size:14px;outline:none;
+  }
+  .names input:focus{border-color:var(--accent);}
+  button.primary{
+    width:100%;padding:14px;border:none;border-radius:12px;
+    background:var(--accent);color:#fff;font-size:16px;font-weight:600;cursor:pointer;
+  }
+  button.primary:active{opacity:.85;}
+
+  /* game screen */
+  #game{display:none;}
+  .turn-banner{
+    text-align:center;margin-bottom:22px;
+  }
+  .turn-banner .who{font-size:22px;font-weight:700;color:var(--accent);}
+  .turn-banner .hint{color:var(--muted);font-size:13px;margin-top:4px;}
+
+  .dice-area{display:flex;justify-content:center;gap:18px;margin-bottom:26px;perspective:600px;}
+  .die{
+    width:76px;height:76px;background:#fff;border-radius:16px;
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    padding:10px;box-shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+  .die .pip{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+  .die .pip::after{content:"";width:12px;height:12px;border-radius:50%;background:#171a23;display:none;}
+  .die.rolling{animation:tumble .5s ease-in-out;}
+  @keyframes tumble{
+    0%{transform:rotate(0deg) scale(1);}
+    30%{transform:rotate(-12deg) scale(1.05);}
+    60%{transform:rotate(10deg) scale(1.05);}
+    100%{transform:rotate(0deg) scale(1);}
+  }
+
+  button.roll{
+    display:block;margin:0 auto 30px;
+    padding:16px 44px;border:none;border-radius:14px;
+    background:var(--accent);color:#fff;font-size:17px;font-weight:700;cursor:pointer;
+  }
+  button.roll:disabled{background:var(--accent-dim);cursor:default;}
+
+  .board{display:flex;flex-direction:column;gap:8px;}
+  .row{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:12px 16px;
+  }
+  .row.active{border-color:var(--accent);}
+  .row.winner{border-color:var(--gold);background:linear-gradient(90deg,rgba(245,192,74,.12),transparent);}
+  .row .name{font-weight:600;font-size:15px;}
+  .row .name .crown{margin-right:6px;}
+  .row .score{font-size:18px;font-weight:700;color:var(--muted);}
+  .row.winner .score{color:var(--gold);}
+  .row .waiting{color:var(--muted);font-size:13px;}
+
+  #result{display:none;text-align:center;margin-top:24px;}
+  #result .headline{font-size:24px;font-weight:700;margin-bottom:6px;}
+  #result .headline.tie{color:var(--danger);}
+  #result .headline.win{color:var(--gold);}
+  .actions{display:flex;gap:10px;margin-top:18px;}
+  .actions button{
+    flex:1;padding:13px;border-radius:12px;border:1px solid var(--border);
+    background:var(--card-hover);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;
+  }
+  .actions button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="/">← на главную</a>
+    <h1>🎲 Кто больше</h1>
+    <span style="width:70px"></span>
+  </div>
+
+  <div class="wrap">
+
+    <div id="setup">
+      <label>Количество игроков</label>
+      <div class="count-row">
+        <button id="minus">−</button>
+        <span id="countLabel">3</span>
+        <button id="plus">+</button>
+      </div>
+      <label>Имена (необязательно)</label>
+      <div class="names" id="names"></div>
+      <button class="primary" id="startBtn">Начать игру</button>
+    </div>
+
+    <div id="game">
+      <div class="turn-banner">
+        <div class="who" id="whoTurn"></div>
+        <div class="hint" id="hint"></div>
+      </div>
+
+      <div class="dice-area">
+        <div class="die" id="die1"></div>
+        <div class="die" id="die2"></div>
+      </div>
+
+      <button class="roll" id="rollBtn">Бросить кубики</button>
+
+      <div class="board" id="board"></div>
+
+      <div id="result">
+        <div class="headline" id="headline"></div>
+        <div class="actions">
+          <button id="rematchBtn">Ещё раз (те же игроки)</button>
+          <button class="primary" id="newBtn">Новая игра</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+const PIP_LAYOUTS = {
+  1: [4],
+  2: [0,8],
+  3: [0,4,8],
+  4: [0,2,6,8],
+  5: [0,2,4,6,8],
+  6: [0,2,3,5,6,8],
+};
+
+function renderDie(el, value){
+  el.innerHTML = '';
+  for(let i=0;i<9;i++){
+    const p = document.createElement('div');
+    p.className = 'pip';
+    el.appendChild(p);
+  }
+  const cells = el.children;
+  [...cells].forEach((c,i)=>{
+    const active = PIP_LAYOUTS[value].includes(i);
+    let dot = c.querySelector('.dot');
+    if(!dot){
+      dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.style.width='14px';
+      dot.style.height='14px';
+      dot.style.borderRadius='50%';
+      dot.style.background='#171a23';
+      c.appendChild(dot);
+    }
+    dot.style.visibility = active ? 'visible' : 'hidden';
+  });
+}
+
+let players = [];
+let order = [];
+let turnIndex = 0;
+let rolling = false;
+let playerCount = 3;
+
+const countLabel = document.getElementById('countLabel');
+const namesWrap = document.getElementById('names');
+const minus = document.getElementById('minus');
+const plus = document.getElementById('plus');
+const startBtn = document.getElementById('startBtn');
+const setupEl = document.getElementById('setup');
+const gameEl = document.getElementById('game');
+const whoTurn = document.getElementById('whoTurn');
+const hint = document.getElementById('hint');
+const rollBtn = document.getElementById('rollBtn');
+const board = document.getElementById('board');
+const die1 = document.getElementById('die1');
+const die2 = document.getElementById('die2');
+const resultEl = document.getElementById('result');
+const headline = document.getElementById('headline');
+const rematchBtn = document.getElementById('rematchBtn');
+const newBtn = document.getElementById('newBtn');
+
+function renderNameInputs(){
+  namesWrap.innerHTML = '';
+  for(let i=1;i<=playerCount;i++){
+    const inp = document.createElement('input');
+    inp.placeholder = 'Игрок ' + i;
+    inp.maxLength = 16;
+    inp.dataset.idx = i;
+    namesWrap.appendChild(inp);
+  }
+}
+
+minus.onclick = () => {
+  if(playerCount > 2){ playerCount--; countLabel.textContent = playerCount; renderNameInputs(); }
+};
+plus.onclick = () => {
+  if(playerCount < 8){ playerCount++; countLabel.textContent = playerCount; renderNameInputs(); }
+};
+renderNameInputs();
+
+function buildPlayers(){
+  const inputs = [...namesWrap.querySelectorAll('input')];
+  players = inputs.map((inp,i) => ({
+    id: i,
+    name: inp.value.trim() || ('Игрок ' + (i+1)),
+    score: null,
+    done: false,
+  }));
+}
+
+function startRound(participantIds){
+  order = participantIds;
+  turnIndex = 0;
+  order.forEach(id => { players[id].score = null; players[id].done = false; });
+  renderDie(die1, 1);
+  renderDie(die2, 1);
+  resultEl.style.display = 'none';
+  rollBtn.style.display = 'block';
+  rollBtn.disabled = false;
+  renderBoard();
+  updateTurnBanner();
+}
+
+function updateTurnBanner(){
+  const current = players[order[turnIndex]];
+  whoTurn.textContent = current.name;
+  hint.textContent = 'бросает кубики';
+}
+
+function renderBoard(){
+  board.innerHTML = '';
+  order.forEach(id => {
+    const p = players[id];
+    const row = document.createElement('div');
+    row.className = 'row';
+    if(!p.done && order[turnIndex] === id) row.classList.add('active');
+    row.innerHTML = `
+      <div class="name">${p.name}</div>
+      ${p.done ? `<div class="score">${p.score}</div>` : `<div class="waiting">${order[turnIndex]===id ? 'ходит' : 'ждёт'}</div>`}
+    `;
+    board.appendChild(row);
+  });
+}
+
+rollBtn.onclick = () => {
+  if(rolling) return;
+  rolling = true;
+  rollBtn.disabled = true;
+  die1.classList.add('rolling');
+  die2.classList.add('rolling');
+
+  let ticks = 0;
+  const flicker = setInterval(() => {
+    renderDie(die1, 1 + Math.floor(Math.random()*6));
+    renderDie(die2, 1 + Math.floor(Math.random()*6));
+    ticks++;
+    if(ticks > 6){
+      clearInterval(flicker);
+      const v1 = 1 + Math.floor(Math.random()*6);
+      const v2 = 1 + Math.floor(Math.random()*6);
+      renderDie(die1, v1);
+      renderDie(die2, v2);
+      die1.classList.remove('rolling');
+      die2.classList.remove('rolling');
+
+      const current = players[order[turnIndex]];
+      current.score = v1 + v2;
+      current.done = true;
+      renderBoard();
+
+      turnIndex++;
+      rolling = false;
+
+      if(turnIndex < order.length){
+        updateTurnBanner();
+        rollBtn.disabled = false;
+      } else {
+        finishRound();
+      }
+    }
+  }, 90);
+};
+
+function finishRound(){
+  rollBtn.style.display = 'none';
+  const scores = order.map(id => players[id].score);
+  const max = Math.max(...scores);
+  const winners = order.filter(id => players[id].score === max);
+
+  board.querySelectorAll('.row').forEach((row,i) => {
+    const id = order[i];
+    if(winners.includes(id)) row.classList.add('winner');
+  });
+
+  resultEl.style.display = 'block';
+  if(winners.length === 1){
+    const w = players[winners[0]];
+    headline.className = 'headline win';
+    headline.textContent = '🏆 ' + w.name + ' победил! (' + w.score + ')';
+    rematchBtn.textContent = 'Ещё раз (те же игроки)';
+    rematchBtn.onclick = () => startRound(order.slice());
+  } else {
+    headline.className = 'headline tie';
+    headline.textContent = 'Ничья между ' + winners.map(id=>players[id].name).join(', ') + ' — переброс';
+    rematchBtn.textContent = 'Переброс между ' + winners.length;
+    rematchBtn.onclick = () => startRound(winners.slice());
+  }
+}
+
+startBtn.onclick = () => {
+  buildPlayers();
+  setupEl.style.display = 'none';
+  gameEl.style.display = 'block';
+  startRound(players.map(p => p.id));
+};
+
+newBtn.onclick = () => {
+  gameEl.style.display = 'none';
+  setupEl.style.display = 'block';
+};
+</script>
+</body>
+</html>
