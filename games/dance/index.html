@@ -82,6 +82,7 @@
   }
   .nameInput:focus{border-color:var(--purple);}
   .nameWarn{color:var(--gold);font-size:12px;margin:-12px 0 16px;min-height:14px;}
+  .nameStreak{color:var(--gold);font-size:13px;font-weight:700;margin:-12px 0 16px;min-height:14px;}
   .statsBtn{
     margin-top:18px;border:none;color:#fff;
     background:linear-gradient(90deg,var(--cyan),var(--purple));
@@ -261,6 +262,18 @@
   .pdName{font-size:19px;font-weight:800;
     background:linear-gradient(90deg,var(--pink),var(--purple));
     -webkit-background-clip:text;background-clip:text;color:transparent;}
+
+  .badgesTitle{font-size:13px;color:var(--muted);font-weight:700;margin:18px 0 10px;}
+  .badgeGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .badge{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:10px 4px;opacity:.35;filter:grayscale(1);
+  }
+  .badge.unlocked{opacity:1;filter:none;border-color:var(--gold);background:var(--panel2);}
+  .badgeIcon{font-size:22px;}
+  .badgeName{font-size:9px;color:var(--muted);text-align:center;line-height:1.2;}
+  .badge.unlocked .badgeName{color:var(--text);}
 </style>
 </head>
 <body>
@@ -276,6 +289,7 @@
       <p class="sub">Лови движения в такт биту — на телефоне тапай по кнопкам, на компьютере жми стрелки.</p>
       <input type="text" class="nameInput" id="playerNameInput" placeholder="Твоё имя" maxlength="16">
       <div class="nameWarn" id="nameWarn"></div>
+      <div class="nameStreak" id="nameStreak"></div>
       <button class="bigbtn" id="playBtn">Играть</button>
       <div class="howto" id="howto"></div>
       <button class="statsBtn" id="statsBtn">Статистика игроков</button>
@@ -400,6 +414,17 @@ function playHat(t, vol){
 }
 
 const RANK_TITLES = {S:'Звезда сцены', A:'Профи танцпола', B:'Уверенный ритм', C:'Есть потенциал', D:'Новичок'};
+
+const ACHIEVEMENTS = [
+  {icon:'🎮', name:'Первый шаг',    desc:'Сыграй первую партию',   check:p => p.games_played >= 1},
+  {icon:'🕹️', name:'Постоянство',   desc:'Сыграй 10 партий',       check:p => p.games_played >= 10},
+  {icon:'⚡', name:'Разогналась',   desc:'Комбо от 10 подряд',     check:p => p.best_combo >= 10},
+  {icon:'🔥', name:'Без остановки', desc:'Комбо от 25 подряд',     check:p => p.best_combo >= 25},
+  {icon:'🎯', name:'Меткость',      desc:'Точность от 90%',        check:p => p.best_accuracy >= 90},
+  {icon:'💯', name:'Идеально',      desc:'Точность 100%',          check:p => p.best_accuracy >= 100},
+  {icon:'📅', name:'Втянулась',     desc:'3 дня подряд',           check:p => p.streak_days >= 3},
+  {icon:'🏆', name:'Неделя огня',   desc:'7 дней подряд',          check:p => p.streak_days >= 7},
+];
 
 const CHORDS = [
   { bass: 110.00, notes: [220.00, 261.63, 329.63] },
@@ -532,25 +557,29 @@ const timerFillEl = document.getElementById('timerFill');
 let songDuration = 0;
 
 const nameWarn = document.getElementById('nameWarn');
+const nameStreak = document.getElementById('nameStreak');
 let nameCheckToken = 0;
 
 async function checkNameExists(){
   const name = (playerNameInput.value || '').trim();
-  if(!name){ nameWarn.textContent = ''; return; }
+  if(!name){ nameWarn.textContent = ''; nameStreak.textContent = ''; return; }
   const token = ++nameCheckToken;
   try {
-    const res = await fetch('/api/history.php?game=dance&player=' + encodeURIComponent(name));
+    const res = await fetch('/api/stats.php?game=dance');
     const data = await res.json();
     if(token !== nameCheckToken) return;
-    if(data.ok && data.history && data.history.length > 0){
+    const p = data.ok ? data.players.find(pl => pl.player_name === name) : null;
+    if(p){
       nameWarn.textContent = 'Игрок «' + name + '» уже есть в истории — если это не ты, выбери другое имя';
+      nameStreak.textContent = p.streak_days >= 2 ? '🔥 ' + p.streak_days + ' дней подряд — не прерывай серию!' : '';
     } else {
       nameWarn.textContent = '';
+      nameStreak.textContent = '';
     }
   } catch(e){}
 }
 playerNameInput.addEventListener('blur', checkNameExists);
-playerNameInput.addEventListener('input', () => { nameWarn.textContent = ''; });
+playerNameInput.addEventListener('input', () => { nameWarn.textContent = ''; nameStreak.textContent = ''; });
 
 try {
   const saved = localStorage.getItem('beatdance_player');
@@ -606,6 +635,20 @@ statsList.addEventListener('click', (ev) => {
 function showPlayerDetail(name){
   const p = statsPlayersCache.find(pl => pl.player_name === name);
 
+  const streakLine = p && p.streak_days >= 2
+    ? `<div class="statsRow"><div class="pname">🔥 Дней подряд</div><div class="pscore">${p.streak_days}</div></div>`
+    : '';
+
+  const badges = ACHIEVEMENTS.map(a => {
+    const unlocked = p ? a.check(p) : false;
+    return `
+      <div class="badge ${unlocked ? 'unlocked' : ''}" title="${escapeHtml(a.desc)}">
+        <div class="badgeIcon">${a.icon}</div>
+        <div class="badgeName">${escapeHtml(a.name)}</div>
+      </div>
+    `;
+  }).join('');
+
   statsList.innerHTML = `
     <button class="backToList" id="backToListBtn">← Все игроки</button>
     <div class="playerDetailHead">
@@ -623,6 +666,9 @@ function showPlayerDetail(name){
       <div class="pname">Лучшая точность</div>
       <div class="pscore">${p ? p.best_accuracy + '%' : '—'}</div>
     </div>
+    ${streakLine}
+    <div class="badgesTitle">Достижения</div>
+    <div class="badgeGrid">${badges}</div>
   `;
   document.getElementById('backToListBtn').onclick = renderStatsList;
 }
