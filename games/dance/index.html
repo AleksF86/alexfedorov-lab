@@ -422,7 +422,8 @@ function playMissSound(){
 
 const BPM = 100;
 const beatSec = 60/BPM;
-const leadInBeats = 4;
+const PRE_ROLL_SECONDS = 3;
+const NOTES_START_AT = 1;
 const totalBeats = 44;
 const ROUND_SECONDS = 30;
 const fallDuration = 1.1;
@@ -446,7 +447,7 @@ function buildEvents(){
     return l;
   }
   for(let b=0;b<totalBeats;b++){
-    const t = (leadInBeats+b)*beatSec;
+    const t = PRE_ROLL_SECONDS + b*beatSec;
     const section = b<Math.round(totalBeats*0.25) ? 0 : b<Math.round(totalBeats*0.625) ? 1 : 2;
     if(section===0){
       if(Math.random()<0.7) events.push({time:t, lane:pickLane(), judged:false});
@@ -459,15 +460,19 @@ function buildEvents(){
     }
   }
   events.sort((a,b)=>a.time-b.time);
+  events.forEach(e => {
+    e.spawnTime = Math.max(NOTES_START_AT, e.time - fallDuration);
+    e.fallDur = e.time - e.spawnTime;
+  });
 }
 
 function scheduleAudio(){
   const base = audioCtx.currentTime + 0.15;
-  for(let b=0;b<leadInBeats;b++){
-    playCount(base + b*beatSec);
+  for(let s=0;s<PRE_ROLL_SECONDS;s++){
+    playCount(base + s);
   }
   for(let b=0;b<totalBeats;b++){
-    const t = base + (leadInBeats+b)*beatSec;
+    const t = base + PRE_ROLL_SECONDS + b*beatSec;
     const chord = CHORDS[Math.floor(b/4) % CHORDS.length];
     playKick(t);
     if(b % 2 === 0){
@@ -671,7 +676,7 @@ function startGame(){
   startTime = scheduleAudio();
   songDuration = ROUND_SECONDS;
 
-  let count = leadInBeats;
+  let count = PRE_ROLL_SECONDS;
   countdownEl.hidden = false;
   countdownEl.textContent = count;
   const countTimer = setInterval(() => {
@@ -682,7 +687,7 @@ function startGame(){
       countdownEl.hidden = true;
       clearInterval(countTimer);
     }
-  }, beatSec*1000);
+  }, 1000);
 
   cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(loop);
@@ -698,7 +703,7 @@ function loop(){
 
   events.forEach((e, idx) => {
     const remaining = e.time - now;
-    const visible = remaining <= fallDuration && remaining > -0.35;
+    const visible = now >= e.spawnTime && remaining > -0.35;
     let el = noteEls.get(idx);
 
     if(!e.judged && remaining < -MISS_WIN){
@@ -717,7 +722,7 @@ function loop(){
         lanesEl.children[e.lane].appendChild(el);
         noteEls.set(idx, el);
       }
-      const progress = 1 - (remaining / fallDuration);
+      const progress = 1 - (remaining / e.fallDur);
       el.style.top = (progress * hitY - 17) + 'px';
     } else if(el && e.judged){
       el.remove();
