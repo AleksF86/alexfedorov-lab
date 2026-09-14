@@ -117,10 +117,6 @@
   .lanes{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);}
   .lane{position:relative;border-right:1px solid rgba(255,255,255,.04);}
   .lane:last-child{border-right:none;}
-  .hitline{
-    position:absolute;left:0;right:0;bottom:16%;height:4px;
-    background:rgba(255,255,255,.25);
-  }
   .lane .zoneGlow{
     position:absolute;left:6%;right:6%;bottom:calc(16% - 22px);height:44px;border-radius:12px;
     border:2px solid var(--lc);opacity:.35;
@@ -146,16 +142,18 @@
   .particle{
     position:absolute;left:50%;bottom:16%;border-radius:50%;
     pointer-events:none;
-    animation:burst .6s ease-out forwards;
+    box-shadow:0 0 8px 2px currentColor;
+    animation:burst .75s ease-out forwards;
   }
   @keyframes burst{
     0%{transform:translate(-50%,50%) translate(0,0) scale(1);opacity:1;}
+    60%{opacity:1;}
     100%{transform:translate(-50%,50%) translate(var(--dx),var(--dy)) scale(.2);opacity:0;}
   }
   .spark{
     position:absolute;left:50%;bottom:16%;width:3px;
     pointer-events:none;border-radius:2px;
-    animation:sparkburst .5s ease-out forwards;
+    animation:sparkburst .6s ease-out forwards;
   }
   @keyframes sparkburst{
     0%{transform:translate(-50%,50%) translate(0,0) rotate(var(--rot)) scaleY(1);opacity:1;}
@@ -258,7 +256,6 @@
       </div>
       <div class="stage" id="stage">
         <div class="lanes" id="lanes"></div>
-        <div class="hitline"></div>
         <div class="countdown" id="countdown" hidden>3</div>
       </div>
       <div class="controls" id="controls"></div>
@@ -278,6 +275,7 @@
       </div>
       <div class="endbtns">
         <a href="/">На главную</a>
+        <button id="endStatsBtn">📊 Статистика</button>
         <button class="primary" id="againBtn">Играть ещё</button>
       </div>
     </div>
@@ -441,9 +439,11 @@ document.getElementById('againBtn').onclick = startGame;
 
 const statsScreen = document.getElementById('statsScreen');
 const statsList = document.getElementById('statsList');
+let statsReturnScreen = startScreen;
 
-document.getElementById('statsBtn').onclick = async () => {
-  startScreen.hidden = true;
+async function openStats(returnScreen){
+  statsReturnScreen = returnScreen;
+  returnScreen.hidden = true;
   statsScreen.hidden = false;
   statsList.innerHTML = '<div class="statsEmpty">Загрузка…</div>';
   try {
@@ -464,11 +464,14 @@ document.getElementById('statsBtn').onclick = async () => {
   } catch(e){
     statsList.innerHTML = '<div class="statsEmpty">Не удалось загрузить статистику</div>';
   }
-};
+}
+
+document.getElementById('statsBtn').onclick = () => openStats(startScreen);
+document.getElementById('endStatsBtn').onclick = () => openStats(endScreen);
 
 document.getElementById('statsBackBtn').onclick = () => {
   statsScreen.hidden = true;
-  startScreen.hidden = false;
+  statsReturnScreen.hidden = false;
 };
 
 function escapeHtml(str){
@@ -583,35 +586,38 @@ function spawnBurst(lane, big){
   const container = lanesEl.children[lane];
   const laneColor = getComputedStyle(container).getPropertyValue('--lc').trim() || '#fff';
 
-  const dotCount = big ? 16 : 9;
+  const dotCount = big ? 28 : 18;
   for(let i=0;i<dotCount;i++){
     const p = document.createElement('div');
     p.className = 'particle';
     const angle = Math.random()*Math.PI*2;
-    const dist = (big ? 45 : 28) + Math.random()*(big ? 45 : 26);
+    const dist = (big ? 55 : 38) + Math.random()*(big ? 60 : 36);
     p.style.setProperty('--dx', (Math.cos(angle)*dist)+'px');
     p.style.setProperty('--dy', (-Math.abs(Math.sin(angle))*dist)+'px');
-    const size = 4 + Math.random()*(big ? 6 : 4);
+    const size = 5 + Math.random()*(big ? 8 : 6);
     p.style.width = size+'px';
     p.style.height = size+'px';
-    p.style.background = Math.random() < 0.4 ? 'var(--gold)' : laneColor;
+    const col = Math.random() < 0.45 ? 'var(--gold)' : laneColor;
+    p.style.background = col;
+    p.style.color = col;
     container.appendChild(p);
-    setTimeout(() => p.remove(), 650);
+    setTimeout(() => p.remove(), 800);
   }
 
-  const sparkCount = big ? 8 : 0;
+  const sparkCount = big ? 14 : 6;
   for(let i=0;i<sparkCount;i++){
     const s = document.createElement('div');
     s.className = 'spark';
     const angle = Math.random()*Math.PI*2;
-    const dist = 40 + Math.random()*40;
+    const dist = (big ? 50 : 32) + Math.random()*(big ? 50 : 30);
     s.style.setProperty('--dx', (Math.cos(angle)*dist)+'px');
     s.style.setProperty('--dy', (-Math.abs(Math.sin(angle))*dist)+'px');
     s.style.setProperty('--rot', (angle*180/Math.PI)+'deg');
-    s.style.height = (10+Math.random()*8)+'px';
+    s.style.height = (10+Math.random()*10)+'px';
     s.style.background = 'var(--gold)';
+    s.style.boxShadow = '0 0 6px 1px var(--gold)';
     container.appendChild(s);
-    setTimeout(() => s.remove(), 550);
+    setTimeout(() => s.remove(), 600);
   }
 }
 
@@ -647,25 +653,25 @@ function hitLane(lane){
     score += 100 + combo*2;
     combo++;
     perfectCount++;
-    showFx(lane, 'Perfect!', 'var(--gold)');
+    showFx(lane, 'Идеально!', 'var(--gold)');
     spawnBurst(lane, true);
     flashAvatar(combo >= 15 ? 'spinFast' : 'pop');
   } else if(bestDiff <= GOOD_WIN){
     score += 50 + combo;
     combo++;
     goodCount++;
-    showFx(lane, 'Good', 'var(--good)');
+    showFx(lane, 'Хорошо', 'var(--good)');
     spawnBurst(lane, false);
     flashAvatar('pop');
   } else {
     combo = 0;
     missCount++;
-    showFx(lane, 'Miss', '#ff5b6a');
+    showFx(lane, 'Мимо', '#ff5b6a');
     flashAvatar('shake');
   }
   maxCombo = Math.max(maxCombo, combo);
   scoreVal.textContent = score;
-  comboVal.textContent = combo > 1 ? combo + 'x combo' : '';
+  comboVal.textContent = combo > 1 ? combo + 'x комбо' : '';
 }
 
 document.addEventListener('keydown', (ev) => {
