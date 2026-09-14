@@ -242,11 +242,25 @@
     display:flex;align-items:center;gap:10px;
     background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 14px;
   }
+  .statsRow[data-name]{cursor:pointer;transition:background .15s ease,transform .1s ease;}
+  .statsRow[data-name]:active{transform:scale(.98);background:var(--panel2);}
   .statsRow .pos{width:22px;font-weight:800;color:var(--muted);font-size:13px;}
   .statsRow .pname{flex:1;font-weight:700;font-size:14px;}
   .statsRow .pscore{font-weight:800;color:var(--gold);font-size:15px;}
   .statsRow .pgames{font-size:11px;color:var(--muted);margin-left:8px;}
   .statsEmpty{text-align:center;color:var(--muted);font-size:14px;padding:30px 0;}
+  .backToList{
+    background:none;border:none;color:var(--purple);font-family:inherit;
+    font-size:13px;font-weight:700;cursor:pointer;padding:0 0 14px;text-align:left;
+  }
+  .playerDetailHead{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);
+  }
+  .pdName{font-size:19px;font-weight:800;
+    background:linear-gradient(90deg,var(--pink),var(--purple));
+    -webkit-background-clip:text;background-clip:text;color:transparent;}
+  .pdBest{font-size:13px;color:var(--gold);font-weight:700;}
 </style>
 </head>
 <body>
@@ -384,6 +398,8 @@ function playHat(t, vol){
   src.connect(filter).connect(gain).connect(audioCtx.destination);
   src.start(t);
 }
+
+const RANK_TITLES = {S:'Звезда сцены', A:'Профи танцпола', B:'Уверенный ритм', C:'Есть потенциал', D:'Новичок'};
 
 const CHORDS = [
   { bass: 110.00, notes: [220.00, 261.63, 329.63] },
@@ -548,13 +564,17 @@ async function openStats(returnScreen){
   statsReturnScreen = returnScreen;
   returnScreen.hidden = true;
   statsScreen.hidden = false;
+  renderStatsList();
+}
+
+async function renderStatsList(){
   statsList.innerHTML = '<div class="statsEmpty">Загрузка…</div>';
   try {
     const res = await fetch('/api/stats.php?game=dance');
     const data = await res.json();
     if(data.ok && data.players.length > 0){
       statsList.innerHTML = data.players.map((p, i) => `
-        <div class="statsRow">
+        <div class="statsRow" data-name="${escapeHtml(p.player_name)}">
           <div class="pos">${i+1}</div>
           <div class="pname">${escapeHtml(p.player_name)}</div>
           <div class="pgames">${p.games_played} игр</div>
@@ -566,6 +586,41 @@ async function openStats(returnScreen){
     }
   } catch(e){
     statsList.innerHTML = '<div class="statsEmpty">Не удалось загрузить статистику</div>';
+  }
+}
+
+statsList.addEventListener('click', (ev) => {
+  const row = ev.target.closest('.statsRow[data-name]');
+  if(!row) return;
+  showPlayerDetail(row.dataset.name);
+});
+
+async function showPlayerDetail(name){
+  statsList.innerHTML = '<div class="statsEmpty">Загрузка…</div>';
+  try {
+    const res = await fetch('/api/history.php?game=dance&player=' + encodeURIComponent(name));
+    const data = await res.json();
+    if(!data.ok) throw new Error('bad response');
+
+    const rows = data.history.map(h => `
+      <div class="statsRow">
+        <div class="pname">${new Date(h.created_at).toLocaleDateString('ru-RU')}</div>
+        <div class="pgames">${h.accuracy}% · ${RANK_TITLES[h.rank_letter] || h.rank_letter}</div>
+        <div class="pscore">${h.score}</div>
+      </div>
+    `).join('') || '<div class="statsEmpty">Пока нет сыгранных партий</div>';
+
+    statsList.innerHTML = `
+      <button class="backToList" id="backToListBtn">← Все игроки</button>
+      <div class="playerDetailHead">
+        <div class="pdName">${escapeHtml(name)}</div>
+        <div class="pdBest">Рекорд: ${data.best ? data.best.score : '—'}</div>
+      </div>
+      ${rows}
+    `;
+    document.getElementById('backToListBtn').onclick = renderStatsList;
+  } catch(e){
+    statsList.innerHTML = '<div class="statsEmpty">Не удалось загрузить данные игрока</div>';
   }
 }
 
@@ -812,7 +867,6 @@ function endGame(){
   document.getElementById('finalCombo').textContent = maxCombo;
   document.getElementById('finalAcc').textContent = acc + '%';
 
-  const RANK_TITLES = {S:'Звезда сцены', A:'Профи танцпола', B:'Уверенный ритм', C:'Есть потенциал', D:'Новичок'};
   let rank, msg;
   if(acc >= 95){ rank='S'; msg='Невероятно! Это выступление достойно сцены 🔥'; }
   else if(acc >= 85){ rank='A'; msg='Огонь! Почти без ошибок 💥'; }
