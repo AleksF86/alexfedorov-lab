@@ -77,11 +77,18 @@
     box-shadow:0 8px 24px rgba(255,79,154,.35);
   }
   .bigbtn:active{transform:translateY(1px);}
-  .howto{display:flex;gap:10px;margin-top:26px;}
+  .howto{display:flex;gap:12px;margin-top:26px;}
   .howto .k{
-    width:44px;height:44px;border-radius:10px;border:1px solid var(--border);
-    display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--panel);
+    width:52px;height:52px;border-radius:14px;border:none;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--lc) 55%, white) 0%, var(--lc) 55%, color-mix(in srgb, var(--lc) 70%, black) 100%);
+    box-shadow:
+      0 4px 0 color-mix(in srgb, var(--lc) 50%, black),
+      0 6px 10px rgba(0,0,0,.4),
+      inset 0 2px 2px rgba(255,255,255,.5),
+      inset 0 -2px 3px rgba(0,0,0,.25);
   }
+  .howto .k svg{width:24px;height:24px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));}
 
   /* game screen */
   #gameScreen{justify-content:flex-start;}
@@ -119,10 +126,15 @@
     border:2px solid var(--lc);opacity:.35;
   }
   .note{
-    position:absolute;left:10%;right:10%;height:34px;border-radius:10px;
-    display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#160c24;
-    background:var(--lc);box-shadow:0 0 14px var(--lc);
+    position:absolute;left:8%;right:8%;height:40px;border-radius:13px;
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    background:radial-gradient(circle at 35% 25%, color-mix(in srgb, var(--lc) 55%, white) 0%, var(--lc) 60%, color-mix(in srgb, var(--lc) 70%, black) 100%);
+    box-shadow:
+      0 0 18px var(--lc),
+      inset 0 2px 3px rgba(255,255,255,.55),
+      inset 0 -3px 4px rgba(0,0,0,.25);
   }
+  .note svg{width:24px;height:24px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));}
   .fx{
     position:absolute;left:8%;right:8%;bottom:calc(16% - 30px);height:60px;
     display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;
@@ -138,12 +150,26 @@
   }
   .countdown[hidden]{display:none;}
 
-  .controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;}
+  .controls{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;}
   .padBtn{
-    padding:16px 0;border-radius:12px;border:2px solid var(--lc);background:rgba(255,255,255,.03);
-    color:var(--lc);font-size:20px;font-weight:800;cursor:pointer;
+    position:relative;padding:26px 0;border-radius:18px;border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    background:radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--lc) 55%, white) 0%, var(--lc) 55%, color-mix(in srgb, var(--lc) 65%, black) 100%);
+    box-shadow:
+      0 6px 0 color-mix(in srgb, var(--lc) 50%, black),
+      0 10px 16px rgba(0,0,0,.45),
+      inset 0 3px 4px rgba(255,255,255,.55),
+      inset 0 -4px 6px rgba(0,0,0,.3);
+    transition:transform .07s ease, box-shadow .07s ease;
   }
-  .padBtn.active{background:var(--lc);color:#160c24;}
+  .padBtn svg{width:34px;height:34px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));}
+  .padBtn.active{
+    transform:translateY(5px);
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--lc) 50%, black),
+      0 2px 6px rgba(0,0,0,.4),
+      inset 0 3px 5px rgba(0,0,0,.35);
+  }
 
   /* end screen */
   #endScreen .rank{font-size:64px;font-weight:900;margin-bottom:4px;
@@ -191,9 +217,7 @@
       <input type="text" class="nameInput" id="playerNameInput" placeholder="Твоё имя" maxlength="16">
       <div class="nameWarn" id="nameWarn"></div>
       <button class="bigbtn" id="playBtn">Играть</button>
-      <div class="howto">
-        <div class="k">⬅️</div><div class="k">⬆️</div><div class="k">⬇️</div><div class="k">➡️</div>
-      </div>
+      <div class="howto" id="howto"></div>
       <button class="statsBtn" id="statsBtn">📊 Статистика игроков</button>
     </div>
 
@@ -242,14 +266,25 @@
 
 <script>
 const LANES = [
-  {key:'ArrowLeft',  icon:'⬅️', color:'var(--pink)'},
-  {key:'ArrowUp',    icon:'⬆️', color:'var(--purple)'},
-  {key:'ArrowDown',  icon:'⬇️', color:'var(--cyan)'},
-  {key:'ArrowRight', icon:'➡️', color:'var(--yellow)'},
+  {key:'ArrowLeft',  dir:'left',  color:'var(--pink)'},
+  {key:'ArrowUp',    dir:'up',    color:'var(--purple)'},
+  {key:'ArrowDown',  dir:'down',  color:'var(--cyan)'},
+  {key:'ArrowRight', dir:'right', color:'var(--yellow)'},
 ];
+
+const ARROW_PATHS = {
+  left:  'M15 5 L15 19 L5 12 Z',
+  up:    'M5 15 L19 15 L12 5 Z',
+  down:  'M5 9 L19 9 L12 19 Z',
+  right: 'M9 5 L9 19 L19 12 Z',
+};
+function arrowIcon(dir){
+  return `<svg viewBox="0 0 24 24"><path d="${ARROW_PATHS[dir]}" fill="currentColor"/></svg>`;
+}
 
 const lanesEl = document.getElementById('lanes');
 const controlsEl = document.getElementById('controls');
+const howtoEl = document.getElementById('howto');
 LANES.forEach((l,i) => {
   const lane = document.createElement('div');
   lane.className = 'lane';
@@ -261,9 +296,15 @@ LANES.forEach((l,i) => {
   const btn = document.createElement('button');
   btn.className = 'padBtn';
   btn.style.setProperty('--lc', l.color);
-  btn.textContent = l.icon;
+  btn.innerHTML = arrowIcon(l.dir);
   btn.dataset.lane = i;
   controlsEl.appendChild(btn);
+
+  const k = document.createElement('div');
+  k.className = 'k';
+  k.style.setProperty('--lc', l.color);
+  k.innerHTML = arrowIcon(l.dir);
+  howtoEl.appendChild(k);
 });
 
 let audioCtx = null;
@@ -491,7 +532,7 @@ function loop(){
       if(!el){
         el = document.createElement('div');
         el.className = 'note';
-        el.textContent = LANES[e.lane].icon;
+        el.innerHTML = arrowIcon(LANES[e.lane].dir);
         lanesEl.children[e.lane].appendChild(el);
         noteEls.set(idx, el);
       }
