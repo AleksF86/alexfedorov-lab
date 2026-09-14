@@ -141,12 +141,20 @@
   .actBtnRaise{background:linear-gradient(90deg,var(--pink),var(--purple));}
   .actions button:disabled{opacity:.35;}
 
-  .raiseRow{display:flex;gap:8px;align-items:center;margin-top:10px;}
+  .raiseRow{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
   .raiseRow[hidden]{display:none;}
-  .raiseRow input{
-    flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;text-align:center;
+  .raiseStepper{display:flex;gap:8px;align-items:center;width:100%;}
+  .raiseStepper input{
+    flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;text-align:center;
   }
-  .raiseRow button{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-weight:700;cursor:pointer;}
+  .raiseStepper button{
+    flex:0 0 44px;padding:10px 0;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-weight:700;cursor:pointer;
+  }
+  .raiseConfirmRow{display:flex;gap:8px;width:100%;}
+  .raiseConfirmRow button{
+    flex:1;min-width:0;padding:12px 4px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-weight:700;font-size:13px;cursor:pointer;
+  }
+  .raiseConfirmRow .confirmBtn{background:linear-gradient(90deg,var(--pink),var(--purple));color:#fff;border:none;}
 
   .waitingMsg{text-align:center;color:var(--muted);font-size:13px;margin-top:8px;min-height:16px;}
 
@@ -231,11 +239,15 @@
         <button class="actBtnRaise" id="raiseBtn">Рейз</button>
       </div>
       <div class="raiseRow" id="raiseRow" hidden>
-        <button id="raiseMinus">-</button>
-        <input type="number" id="raiseAmount" value="20">
-        <button id="raisePlus">+</button>
-        <button id="raiseAllIn">Ва-банк</button>
-        <button id="raiseConfirm" style="background:linear-gradient(90deg,var(--pink),var(--purple));color:#fff;border:none;">OK</button>
+        <div class="raiseStepper">
+          <button id="raiseMinus">-</button>
+          <input type="number" id="raiseAmount" value="20">
+          <button id="raisePlus">+</button>
+        </div>
+        <div class="raiseConfirmRow">
+          <button id="raiseAllIn">Ва-банк</button>
+          <button id="raiseConfirm" class="confirmBtn">Подтвердить</button>
+        </div>
       </div>
     </div>
 
@@ -264,6 +276,7 @@ let ROOM = localStorage.getItem('poker_room') || '';
 let NAME = localStorage.getItem('poker_name') || '';
 let pollTimer = null;
 let lastStatus = null;
+let lastTurnKey = null;
 
 const lobbyScreen = document.getElementById('lobbyScreen');
 const waitScreen = document.getElementById('waitScreen');
@@ -431,13 +444,20 @@ function render(state){
       document.getElementById('checkCallBtn').textContent = canCheck ? 'Чек' : ('Колл ' + (state.current_bet - (me?me.current_bet:0)));
       document.getElementById('checkCallBtn').dataset.mode = canCheck ? 'check' : 'call';
       document.getElementById('raiseAmount').min = state.current_bet + state.min_raise;
-      document.getElementById('raiseAmount').value = state.current_bet + state.min_raise;
+
+      const turnKey = state.hand_number + '_' + state.street + '_' + state.current_bet;
+      if(turnKey !== lastTurnKey){
+        document.getElementById('raiseAmount').value = state.current_bet + state.min_raise;
+        raiseRow.hidden = true;
+        lastTurnKey = turnKey;
+      }
       [...actionsRow.querySelectorAll('button')].forEach(b => b.disabled = false);
     } else {
       const curP = state.players.find(p => p.seat === state.current_seat);
       turnMsg.textContent = curP ? ('Ход: ' + curP.name) : '';
       [...actionsRow.querySelectorAll('button')].forEach(b => b.disabled = true);
       raiseRow.hidden = true;
+      lastTurnKey = null;
     }
   } else if(state.status === 'showdown'){
     actionsRow.style.display = 'grid';
