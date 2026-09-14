@@ -291,7 +291,7 @@
 
     <div class="screen" id="endScreen" hidden>
       <div class="rank" id="rankVal">Игрок</div>
-      <div class="rankBadge" id="rankBadgeVal">Ранг S</div>
+      <div class="rankBadge" id="rankBadgeVal">Звезда сцены</div>
       <div class="msg" id="rankMsg">Огонь!</div>
       <div class="statrow">
         <div><div class="num" id="finalScore">0</div><div class="lbl">очки</div></div>
@@ -812,6 +812,7 @@ function endGame(){
   document.getElementById('finalCombo').textContent = maxCombo;
   document.getElementById('finalAcc').textContent = acc + '%';
 
+  const RANK_TITLES = {S:'Звезда сцены', A:'Профи танцпола', B:'Уверенный ритм', C:'Есть потенциал', D:'Новичок'};
   let rank, msg;
   if(acc >= 95){ rank='S'; msg='Невероятно! Это выступление достойно сцены 🔥'; }
   else if(acc >= 85){ rank='A'; msg='Огонь! Почти без ошибок 💥'; }
@@ -819,7 +820,7 @@ function endGame(){
   else if(acc >= 50){ rank='C'; msg='Неплохо, но можно точнее 👍'; }
   else { rank='D'; msg='Потренируйся ещё разок! 💃'; }
   document.getElementById('rankVal').textContent = currentPlayerName();
-  document.getElementById('rankBadgeVal').textContent = 'Ранг ' + rank;
+  document.getElementById('rankBadgeVal').textContent = RANK_TITLES[rank];
   document.getElementById('rankMsg').textContent = msg;
 
   saveAndLoadHistory(score, maxCombo, acc, rank);
