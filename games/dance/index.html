@@ -26,7 +26,7 @@
     --good:#33e6ff;
     --gold:#ffd23f;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; touch-action:manipulation;}
   html,body{height:100%;}
   body{
     margin:0;
@@ -851,11 +851,14 @@ document.addEventListener('keydown', (ev) => {
 controlsEl.addEventListener('pointerdown', (ev) => {
   const btn = ev.target.closest('.padBtn');
   if(!btn) return;
+  ev.preventDefault();
   const lane = parseInt(btn.dataset.lane);
   hitLane(lane);
   btn.classList.add('active');
   setTimeout(() => btn.classList.remove('active'), 120);
 });
+
+document.addEventListener('dblclick', (ev) => ev.preventDefault());
 
 function endGame(){
   cancelAnimationFrame(rafId);
