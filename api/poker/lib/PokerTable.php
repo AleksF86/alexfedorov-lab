@@ -89,9 +89,8 @@ class PokerTable {
         $players = $this->loadPlayers();
 
         foreach ($players as $seat => $p) {
-            if ($p['status'] !== 'sitting_out' && (int)$p['chips'] === 0) {
-                $players[$seat]['chips'] = 1000;
-                $players[$seat]['status'] = 'active';
+            if ($p['status'] !== 'out' && $p['status'] !== 'sitting_out' && (int)$p['chips'] === 0) {
+                $players[$seat]['status'] = 'out';
             }
         }
 

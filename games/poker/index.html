@@ -132,13 +132,15 @@
   .turnBar{width:100%;height:5px;background:var(--panel2);border-radius:3px;overflow:hidden;margin:8px 0;}
   .turnFill{height:100%;background:linear-gradient(90deg,var(--gold),var(--pink));width:100%;}
 
-  .actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .actions{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;}
   .actions button{
-    padding:13px 4px;border-radius:12px;border:none;font-weight:800;font-size:13px;cursor:pointer;color:#fff;
+    padding:13px 2px;border-radius:12px;border:none;font-weight:800;font-size:12px;cursor:pointer;color:#fff;
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .actBtnFold{background:#4a2536;}
   .actBtnCheck{background:var(--panel2);border:1px solid var(--border)!important;color:var(--text)!important;}
   .actBtnRaise{background:linear-gradient(90deg,var(--pink),var(--purple));}
+  .actBtnAllIn{background:linear-gradient(90deg,var(--gold),#ff7a3d);}
   .actions button:disabled{opacity:.35;}
 
   .raiseRow{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
@@ -237,6 +239,7 @@
         <button class="actBtnFold" id="foldBtn">Фолд</button>
         <button class="actBtnCheck" id="checkCallBtn">Чек</button>
         <button class="actBtnRaise" id="raiseBtn">Рейз</button>
+        <button class="actBtnAllIn" id="allInBtn">Алл-ин</button>
       </div>
       <div class="raiseRow" id="raiseRow" hidden>
         <div class="raiseStepper">
@@ -277,6 +280,34 @@ let NAME = localStorage.getItem('poker_name') || '';
 let pollTimer = null;
 let lastStatus = null;
 let lastTurnKey = null;
+let wasMyTurn = false;
+
+let audioCtx = null;
+function unlockAudio(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+}
+function beep(freq, dur, type, vol, delay){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime + (delay||0);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + dur);
+}
+function playChip(){ beep(1600, 0.05, 'triangle', 0.2); beep(2200, 0.04, 'triangle', 0.12, 0.03); }
+function playFold(){ beep(160, 0.2, 'sine', 0.15); }
+function playCheck(){ beep(700, 0.06, 'square', 0.12); }
+function playRaise(){ playChip(); beep(500, 0.08, 'sawtooth', 0.1, 0.05); }
+function playAllIn(){ [0,0.06,0.12].forEach((d,i) => beep(700 + i*200, 0.1, 'triangle', 0.18, d)); }
+function playTurnAlert(){ beep(900, 0.12, 'sine', 0.15); beep(1200, 0.14, 'sine', 0.15, 0.1); }
+function playWin(){ [0,0.12,0.24,0.36].forEach((d,i) => beep(523 * Math.pow(2, i/12*4), 0.18, 'triangle', 0.2, d)); }
+function playLose(){ beep(300, 0.3, 'sine', 0.12); beep(220, 0.35, 'sine', 0.1, 0.15); }
 
 const lobbyScreen = document.getElementById('lobbyScreen');
 const waitScreen = document.getElementById('waitScreen');
@@ -304,6 +335,7 @@ function currentName(){
 }
 
 document.getElementById('createBtn').onclick = async () => {
+  unlockAudio();
   const name = currentName();
   lobbyMsg.textContent = 'Создаём стол…';
   try {
@@ -319,6 +351,7 @@ document.getElementById('createBtn').onclick = async () => {
 };
 
 document.getElementById('joinBtn').onclick = async () => {
+  unlockAudio();
   const name = currentName();
   const code = (document.getElementById('joinCode').value || '').trim().toUpperCase();
   if(code.length !== 4){ lobbyMsg.textContent = 'Введи код из 4 символов'; return; }
@@ -384,6 +417,7 @@ async function pollOnce(){
 }
 
 function render(state){
+  window.__lastState = state;
   document.getElementById('hudRoom').textContent = state.room_code;
 
   if(state.status === 'waiting'){
@@ -410,12 +444,12 @@ function render(state){
   const oppRow = document.getElementById('oppRow');
   const opponents = state.players.filter(p => !p.is_you);
   oppRow.innerHTML = opponents.map(p => `
-    <div class="oppCard ${p.status==='folded' ? 'folded':''} ${state.current_seat===p.seat && state.status==='playing' ? 'turn':''}">
+    <div class="oppCard ${(p.status==='folded'||p.status==='out') ? 'folded':''} ${state.current_seat===p.seat && state.status==='playing' ? 'turn':''}">
       ${p.is_dealer ? '<div class="dealerTag">D</div>' : ''}
       <div class="nm">${escapeHtml(p.name)}</div>
       <div class="miniCards">${p.hole_cards.length ? p.hole_cards.map(c=>renderCard(c,true)).join('') : ''}</div>
       <div class="chp">${p.chips}</div>
-      <div class="bet">${p.status==='folded' ? 'фолд' : p.status==='all_in' ? 'ва-банк' : p.current_bet>0 ? 'ставка '+p.current_bet : ''}</div>
+      <div class="bet">${p.status==='out' ? 'выбыл' : p.status==='folded' ? 'фолд' : p.status==='all_in' ? 'ва-банк' : p.current_bet>0 ? 'ставка '+p.current_bet : ''}</div>
     </div>
   `).join('');
 
@@ -432,10 +466,23 @@ function render(state){
   const actionsRow = document.getElementById('actionsRow');
   const raiseRow = document.getElementById('raiseRow');
 
+  if(me && me.status === 'out'){
+    actionsRow.style.display = 'none';
+    raiseRow.hidden = true;
+    turnFill.style.width = '0%';
+    turnMsg.textContent = 'Ты выбыл из игры — фишки закончились. Можешь наблюдать за остальными.';
+    document.getElementById('resultBox').hidden = true;
+    lastStatus = state.status;
+    return;
+  }
+
   if(state.status === 'playing'){
     document.getElementById('resultBox').hidden = true;
     const pct = state.time_left !== null ? Math.max(0, Math.min(100, (state.time_left/20)*100)) : 100;
     turnFill.style.width = pct + '%';
+
+    if(state.is_my_turn && !wasMyTurn) playTurnAlert();
+    wasMyTurn = state.is_my_turn;
 
     if(state.is_my_turn){
       turnMsg.textContent = 'Твой ход! Осталось ' + (state.time_left ?? '') + ' сек';
@@ -460,6 +507,8 @@ function render(state){
       lastTurnKey = null;
     }
   } else if(state.status === 'showdown'){
+    const freshShowdown = lastStatus !== 'showdown';
+    wasMyTurn = false;
     actionsRow.style.display = 'grid';
     [...actionsRow.querySelectorAll('button')].forEach(b => b.disabled = true);
     raiseRow.hidden = true;
@@ -472,6 +521,10 @@ function render(state){
       box.hidden = false;
       const winNames = r.winners.map(w => w.name + ' +' + w.amount).join(', ');
       document.getElementById('resultWin').textContent = '🏆 ' + winNames;
+      if(freshShowdown && me){
+        const iWon = r.winners.some(w => w.seat === me.seat);
+        if(iWon) playWin(); else playLose();
+      }
       if(r.type === 'showdown' && r.reveal){
         document.getElementById('resultReveal').innerHTML = r.reveal.map(x => `
           <div class="revealRow">
@@ -497,6 +550,19 @@ function escapeHtml(str){
 }
 
 async function sendAction(action, amount){
+  unlockAudio();
+  const me = window.__lastMe;
+  const tableCurrentBet = window.__lastState ? window.__lastState.current_bet : 0;
+
+  if(action === 'fold') playFold();
+  else if(action === 'check') playCheck();
+  else if(action === 'call'){
+    const owed = tableCurrentBet - (me ? me.current_bet : 0);
+    (me && me.chips <= owed) ? playAllIn() : playChip();
+  } else if(action === 'raise'){
+    (me && (amount||0) >= me.chips + me.current_bet) ? playAllIn() : playRaise();
+  }
+
   await fetch('/api/poker/action.php', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({room_code: ROOM, token: TOKEN, action, amount: amount||0}),
@@ -529,6 +595,12 @@ document.getElementById('raiseConfirm').onclick = () => {
   const amount = parseInt(document.getElementById('raiseAmount').value) || 0;
   document.getElementById('raiseRow').hidden = true;
   sendAction('raise', amount);
+};
+document.getElementById('allInBtn').onclick = () => {
+  const me = window.__lastMe;
+  if(!me) return;
+  document.getElementById('raiseRow').hidden = true;
+  sendAction('raise', me.chips + me.current_bet);
 };
 
 if(ROOM && TOKEN){
