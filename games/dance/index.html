@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b0714">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0b0714;
@@ -28,7 +31,7 @@
     margin:0;
     background:radial-gradient(circle at 50% 0%, #201436 0%, var(--bg) 60%);
     color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-family:'Unbounded',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -239,7 +242,7 @@
       <div class="nameWarn" id="nameWarn"></div>
       <button class="bigbtn" id="playBtn">Играть</button>
       <div class="howto" id="howto"></div>
-      <button class="statsBtn" id="statsBtn">📊 Статистика игроков</button>
+      <button class="statsBtn" id="statsBtn">Статистика игроков</button>
     </div>
 
     <div class="screen" id="statsScreen" hidden>
@@ -279,7 +282,7 @@
       </div>
       <div class="endbtns">
         <a href="/">На главную</a>
-        <button id="endStatsBtn">📊 Статистика</button>
+        <button id="endStatsBtn">Статистика</button>
         <button class="primary" id="againBtn">Играть ещё</button>
       </div>
     </div>
