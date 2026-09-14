@@ -59,7 +59,12 @@
   @keyframes pop{0%{transform:scale(1);}40%{transform:scale(1.35);}100%{transform:scale(1);}}
   @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
 
-  #startScreen p.sub{color:var(--muted);font-size:14px;margin:6px 0 26px;max-width:320px;}
+  #startScreen p.sub{color:var(--muted);font-size:14px;margin:6px 0 18px;max-width:320px;}
+  .nameInput{
+    width:220px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);
+    background:var(--panel);color:var(--text);font-size:15px;text-align:center;outline:none;margin-bottom:18px;
+  }
+  .nameInput:focus{border-color:var(--purple);}
   .bigbtn{
     padding:16px 46px;border:none;border-radius:16px;
     background:linear-gradient(90deg,var(--pink),var(--purple));
@@ -78,6 +83,18 @@
   .hud{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
   .hud .score{font-size:22px;font-weight:800;}
   .hud .combo{font-size:14px;color:var(--gold);font-weight:700;min-height:18px;}
+
+  .timerRow{width:100%;display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .timerRow .time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:32px;}
+  .timerBar{flex:1;height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;}
+  .timerFill{height:100%;width:0%;background:linear-gradient(90deg,var(--pink),var(--cyan));}
+
+  .historyBox{
+    width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:12px;
+    padding:12px 16px;margin-bottom:18px;font-size:13px;color:var(--muted);
+  }
+  .historyBox b{color:var(--text);}
+  .historyBox .hLine{display:flex;justify-content:space-between;padding:3px 0;}
 
   .stage{
     position:relative;width:100%;
@@ -152,6 +169,7 @@
     <div class="screen" id="startScreen">
       <div class="avatar spin" id="avatarStart">💃</div>
       <p class="sub">Лови движения в такт биту — на телефоне тапай по кнопкам, на компьютере жми стрелки.</p>
+      <input type="text" class="nameInput" id="playerNameInput" placeholder="Твоё имя" maxlength="16">
       <button class="bigbtn" id="playBtn">Играть</button>
       <div class="howto">
         <div class="k">⬅️</div><div class="k">⬆️</div><div class="k">⬇️</div><div class="k">➡️</div>
@@ -163,6 +181,10 @@
         <div class="score" id="scoreVal">0</div>
         <div class="avatar" id="avatarGame" style="font-size:34px;margin:0;">💃</div>
         <div class="combo" id="comboVal"></div>
+      </div>
+      <div class="timerRow">
+        <span class="time" id="timeLeft">0:00</span>
+        <div class="timerBar"><div class="timerFill" id="timerFill"></div></div>
       </div>
       <div class="stage" id="stage">
         <div class="lanes" id="lanes"></div>
@@ -179,6 +201,10 @@
         <div><div class="num" id="finalScore">0</div><div class="lbl">очки</div></div>
         <div><div class="num" id="finalCombo">0</div><div class="lbl">макс. комбо</div></div>
         <div><div class="num" id="finalAcc">0%</div><div class="lbl">точность</div></div>
+      </div>
+      <div class="historyBox" id="historyBox" hidden>
+        <div class="hLine"><span>Личный рекорд</span><b id="bestScoreVal">-</b></div>
+        <div class="hLine"><span>Сыграно попыток</span><b id="playCountVal">-</b></div>
       </div>
       <div class="endbtns">
         <a href="/">На главную</a>
@@ -290,8 +316,30 @@ const scoreVal = document.getElementById('scoreVal');
 const comboVal = document.getElementById('comboVal');
 const avatarGame = document.getElementById('avatarGame');
 
+const playerNameInput = document.getElementById('playerNameInput');
+const timeLeftEl = document.getElementById('timeLeft');
+const timerFillEl = document.getElementById('timerFill');
+let songDuration = 0;
+
+try {
+  const saved = localStorage.getItem('beatdance_player');
+  if(saved) playerNameInput.value = saved;
+} catch(e){}
+
 document.getElementById('playBtn').onclick = startGame;
 document.getElementById('againBtn').onclick = startGame;
+
+function currentPlayerName(){
+  const name = (playerNameInput.value || '').trim().slice(0,16);
+  return name || 'Игрок';
+}
+
+function formatTime(sec){
+  sec = Math.max(0, Math.ceil(sec));
+  const m = Math.floor(sec/60);
+  const s = sec%60;
+  return m + ':' + String(s).padStart(2,'0');
+}
 
 function startGame(){
   score = 0; combo = 0; maxCombo = 0; perfectCount = 0; goodCount = 0; missCount = 0;
@@ -299,6 +347,8 @@ function startGame(){
   comboVal.textContent = '';
   noteEls.forEach(el => el.remove());
   noteEls = new Map();
+
+  try { localStorage.setItem('beatdance_player', currentPlayerName()); } catch(e){}
 
   startScreen.hidden = true;
   endScreen.hidden = true;
@@ -309,6 +359,7 @@ function startGame(){
 
   buildEvents();
   startTime = scheduleAudio();
+  songDuration = (leadInBeats+totalBeats)*beatSec + 1.5;
 
   let count = leadInBeats;
   countdownEl.hidden = false;
@@ -331,6 +382,9 @@ function loop(){
   const now = audioCtx.currentTime - startTime;
   const stageH = stage.clientHeight;
   const hitY = stageH * 0.84;
+
+  timeLeftEl.textContent = formatTime(songDuration - now);
+  timerFillEl.style.width = Math.min(100, Math.max(0,(now/songDuration)*100)) + '%';
 
   events.forEach((e, idx) => {
     const remaining = e.time - now;
@@ -364,7 +418,7 @@ function loop(){
     }
   });
 
-  if(now < (leadInBeats+totalBeats)*beatSec + 1.5){
+  if(now < songDuration){
     rafId = requestAnimationFrame(loop);
   } else {
     endGame();
@@ -468,6 +522,37 @@ function endGame(){
   else { rank='D'; msg='Потренируйся ещё разок! 💃'; }
   document.getElementById('rankVal').textContent = rank;
   document.getElementById('rankMsg').textContent = msg;
+
+  saveAndLoadHistory(score, maxCombo, acc, rank);
+}
+
+async function saveAndLoadHistory(finalScore, finalMaxCombo, acc, rank){
+  const name = currentPlayerName();
+  const historyBox = document.getElementById('historyBox');
+  try {
+    await fetch('/api/save_score.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        game: 'dance',
+        player_name: name,
+        score: finalScore,
+        max_combo: finalMaxCombo,
+        accuracy: acc,
+        rank: rank,
+      }),
+    });
+
+    const res = await fetch('/api/history.php?game=dance&player=' + encodeURIComponent(name));
+    const data = await res.json();
+    if(data.ok){
+      document.getElementById('bestScoreVal').textContent = data.best ? data.best.score : finalScore;
+      document.getElementById('playCountVal').textContent = data.history.length;
+      historyBox.hidden = false;
+    }
+  } catch(e){
+    historyBox.hidden = true;
+  }
 }
 </script>
 </body>
