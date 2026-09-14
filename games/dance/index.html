@@ -53,14 +53,25 @@
   .screen{width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;justify-content:center;}
   .screen[hidden]{display:none;}
 
-  .avatar{font-size:70px;margin-bottom:6px;display:inline-block;transition:transform .15s ease, filter .2s ease;filter:drop-shadow(0 0 12px rgba(176,107,255,.5));}
-  .avatar.spin{animation:spin 2.2s linear infinite;}
-  .avatar.spinFast{animation:spin .9s linear infinite;}
+  .avatar{width:92px;height:92px;margin-bottom:6px;display:inline-block;transition:transform .15s ease, filter .2s ease;filter:drop-shadow(0 0 12px rgba(176,107,255,.5));}
+  .avatar svg{width:100%;height:100%;display:block;overflow:visible;}
   .avatar.pop{animation:pop .25s ease;}
   .avatar.shake{animation:shake .3s ease;}
-  @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  .avatar.hype{animation:hype .4s ease;}
   @keyframes pop{0%{transform:scale(1);}40%{transform:scale(1.35);}100%{transform:scale(1);}}
   @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
+  @keyframes hype{0%{transform:scale(1) rotate(0);}30%{transform:scale(1.5) rotate(-8deg);}60%{transform:scale(1.3) rotate(6deg);}100%{transform:scale(1) rotate(0);}}
+
+  .dancer{animation:dancerBob 1.15s ease-in-out infinite;animation-delay:var(--d,0s);}
+  @keyframes dancerBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+  .armL{animation:armSwingL 1.15s ease-in-out infinite;animation-delay:var(--d,0s);}
+  .armR{animation:armSwingR 1.15s ease-in-out infinite;animation-delay:var(--d,0s);}
+  .legL{animation:legSwingL 1.15s ease-in-out infinite;animation-delay:var(--d,0s);}
+  .legR{animation:legSwingR 1.15s ease-in-out infinite;animation-delay:var(--d,0s);}
+  @keyframes armSwingL{0%,100%{transform:rotate(-10deg);}50%{transform:rotate(40deg);}}
+  @keyframes armSwingR{0%,100%{transform:rotate(10deg);}50%{transform:rotate(-40deg);}}
+  @keyframes legSwingL{0%,100%{transform:rotate(-12deg);}50%{transform:rotate(14deg);}}
+  @keyframes legSwingR{0%,100%{transform:rotate(12deg);}50%{transform:rotate(-14deg);}}
 
   #startScreen p.sub{color:var(--muted);font-size:14px;margin:6px 0 18px;max-width:320px;}
   .nameInput{
@@ -236,7 +247,7 @@
     </div>
 
     <div class="screen" id="startScreen">
-      <div class="avatar spin" id="avatarStart">💃</div>
+      <div class="avatar" id="avatarStart"></div>
       <p class="sub">Лови движения в такт биту — на телефоне тапай по кнопкам, на компьютере жми стрелки.</p>
       <input type="text" class="nameInput" id="playerNameInput" placeholder="Твоё имя" maxlength="16">
       <div class="nameWarn" id="nameWarn"></div>
@@ -254,7 +265,7 @@
     <div class="screen" id="gameScreen" hidden>
       <div class="hud">
         <div class="score" id="scoreVal">0</div>
-        <div class="avatar" id="avatarGame" style="font-size:34px;margin:0;">💃</div>
+        <div class="avatar" id="avatarGame" style="width:38px;height:38px;margin:0;"></div>
         <div class="combo" id="comboVal"></div>
       </div>
       <div class="timerRow">
@@ -408,6 +419,45 @@ const countdownEl = document.getElementById('countdown');
 const scoreVal = document.getElementById('scoreVal');
 const comboVal = document.getElementById('comboVal');
 const avatarGame = document.getElementById('avatarGame');
+
+function dancerFigure(x, y, scale, color, delay){
+  return `
+  <g transform="translate(${x},${y}) scale(${scale})">
+    <g class="dancer" style="--d:${delay}">
+      <circle cx="0" cy="-42" r="9" fill="${color}"/>
+      <line x1="0" y1="-32" x2="0" y2="0" stroke="${color}" stroke-width="9" stroke-linecap="round"/>
+      <g class="armL" style="transform-origin:-6px -27px">
+        <line x1="-6" y1="-27" x2="-22" y2="-8" stroke="${color}" stroke-width="9" stroke-linecap="round"/>
+      </g>
+      <g class="armR" style="transform-origin:6px -27px">
+        <line x1="6" y1="-27" x2="22" y2="-8" stroke="${color}" stroke-width="9" stroke-linecap="round"/>
+      </g>
+      <g class="legL" style="transform-origin:-5px 0px">
+        <line x1="-5" y1="0" x2="-14" y2="46" stroke="${color}" stroke-width="9" stroke-linecap="round"/>
+      </g>
+      <g class="legR" style="transform-origin:5px 0px">
+        <line x1="5" y1="0" x2="14" y2="46" stroke="${color}" stroke-width="9" stroke-linecap="round"/>
+      </g>
+    </g>
+  </g>`;
+}
+
+function trioSVG(){
+  return `<svg viewBox="-60 -58 120 116">
+    ${dancerFigure(-32, 8, 0.62, '#ff4f9a', '0s')}
+    ${dancerFigure(2, 10, 0.62, '#b06bff', '-0.25s')}
+    ${dancerFigure(36, 8, 0.62, '#33e6ff', '-0.5s')}
+  </svg>`;
+}
+
+function soloSVG(){
+  return `<svg viewBox="-30 -58 60 116">
+    ${dancerFigure(0, 10, 0.62, '#ff4f9a', '0s')}
+  </svg>`;
+}
+
+document.getElementById('avatarStart').innerHTML = trioSVG();
+avatarGame.innerHTML = soloSVG();
 
 const playerNameInput = document.getElementById('playerNameInput');
 const timeLeftEl = document.getElementById('timeLeft');
@@ -584,7 +634,7 @@ function loop(){
 }
 
 function flashAvatar(cls){
-  avatarGame.classList.remove('pop','shake','spinFast');
+  avatarGame.classList.remove('pop','shake','hype');
   void avatarGame.offsetWidth;
   avatarGame.classList.add(cls);
 }
@@ -662,7 +712,7 @@ function hitLane(lane){
     perfectCount++;
     showFx(lane, 'Идеально!', 'var(--gold)');
     spawnBurst(lane, true);
-    flashAvatar(combo >= 15 ? 'spinFast' : 'pop');
+    flashAvatar(combo >= 15 ? 'hype' : 'pop');
   } else if(bestDiff <= GOOD_WIN){
     score += 50 + combo;
     combo++;
