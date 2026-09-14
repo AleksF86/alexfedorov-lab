@@ -65,6 +65,11 @@
     background:var(--panel);color:var(--text);font-size:15px;text-align:center;outline:none;margin-bottom:18px;
   }
   .nameInput:focus{border-color:var(--purple);}
+  .nameWarn{color:var(--gold);font-size:12px;margin:-12px 0 16px;min-height:14px;}
+  .statsBtn{
+    margin-top:18px;background:none;border:1px solid var(--border);color:var(--muted);
+    padding:9px 18px;border-radius:10px;font-size:13px;cursor:pointer;
+  }
   .bigbtn{
     padding:16px 46px;border:none;border-radius:16px;
     background:linear-gradient(90deg,var(--pink),var(--purple));
@@ -156,6 +161,20 @@
     text-decoration:none;cursor:pointer;
   }
   .endbtns button.primary{background:linear-gradient(90deg,var(--pink),var(--purple));border:none;color:#fff;}
+
+  /* stats screen */
+  #statsScreen{align-items:stretch;}
+  #statsScreen h2{font-size:20px;margin:0 0 16px;text-align:center;}
+  .statsList{width:100%;display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+  .statsRow{
+    display:flex;align-items:center;gap:10px;
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 14px;
+  }
+  .statsRow .pos{width:22px;font-weight:800;color:var(--muted);font-size:13px;}
+  .statsRow .pname{flex:1;font-weight:700;font-size:14px;}
+  .statsRow .pscore{font-weight:800;color:var(--gold);font-size:15px;}
+  .statsRow .pgames{font-size:11px;color:var(--muted);margin-left:8px;}
+  .statsEmpty{text-align:center;color:var(--muted);font-size:14px;padding:30px 0;}
 </style>
 </head>
 <body>
@@ -170,10 +189,18 @@
       <div class="avatar spin" id="avatarStart">💃</div>
       <p class="sub">Лови движения в такт биту — на телефоне тапай по кнопкам, на компьютере жми стрелки.</p>
       <input type="text" class="nameInput" id="playerNameInput" placeholder="Твоё имя" maxlength="16">
+      <div class="nameWarn" id="nameWarn"></div>
       <button class="bigbtn" id="playBtn">Играть</button>
       <div class="howto">
         <div class="k">⬅️</div><div class="k">⬆️</div><div class="k">⬇️</div><div class="k">➡️</div>
       </div>
+      <button class="statsBtn" id="statsBtn">📊 Статистика игроков</button>
+    </div>
+
+    <div class="screen" id="statsScreen" hidden>
+      <h2>📊 Статистика игроков</h2>
+      <div class="statsList" id="statsList"></div>
+      <button class="bigbtn" id="statsBackBtn" style="padding:12px 36px;font-size:15px;">Назад</button>
     </div>
 
     <div class="screen" id="gameScreen" hidden>
@@ -258,7 +285,8 @@ function playCount(t){ beep(t, 440, 0.12, 'square', 0.3); }
 const BPM = 100;
 const beatSec = 60/BPM;
 const leadInBeats = 4;
-const totalBeats = 64;
+const totalBeats = 44;
+const ROUND_SECONDS = 30;
 const fallDuration = 1.1;
 const PERFECT_WIN = 0.09;
 const GOOD_WIN = 0.18;
@@ -281,7 +309,7 @@ function buildEvents(){
   }
   for(let b=0;b<totalBeats;b++){
     const t = (leadInBeats+b)*beatSec;
-    const section = b<16 ? 0 : b<40 ? 1 : 2;
+    const section = b<Math.round(totalBeats*0.25) ? 0 : b<Math.round(totalBeats*0.625) ? 1 : 2;
     if(section===0){
       if(Math.random()<0.7) events.push({time:t, lane:pickLane(), judged:false});
     } else if(section===1){
@@ -321,13 +349,73 @@ const timeLeftEl = document.getElementById('timeLeft');
 const timerFillEl = document.getElementById('timerFill');
 let songDuration = 0;
 
+const nameWarn = document.getElementById('nameWarn');
+let nameCheckToken = 0;
+
+async function checkNameExists(){
+  const name = (playerNameInput.value || '').trim();
+  if(!name){ nameWarn.textContent = ''; return; }
+  const token = ++nameCheckToken;
+  try {
+    const res = await fetch('/api/history.php?game=dance&player=' + encodeURIComponent(name));
+    const data = await res.json();
+    if(token !== nameCheckToken) return;
+    if(data.ok && data.history && data.history.length > 0){
+      nameWarn.textContent = 'Игрок «' + name + '» уже есть в истории — если это не ты, выбери другое имя';
+    } else {
+      nameWarn.textContent = '';
+    }
+  } catch(e){}
+}
+playerNameInput.addEventListener('blur', checkNameExists);
+playerNameInput.addEventListener('input', () => { nameWarn.textContent = ''; });
+
 try {
   const saved = localStorage.getItem('beatdance_player');
   if(saved) playerNameInput.value = saved;
 } catch(e){}
+if(playerNameInput.value) checkNameExists();
 
 document.getElementById('playBtn').onclick = startGame;
 document.getElementById('againBtn').onclick = startGame;
+
+const statsScreen = document.getElementById('statsScreen');
+const statsList = document.getElementById('statsList');
+
+document.getElementById('statsBtn').onclick = async () => {
+  startScreen.hidden = true;
+  statsScreen.hidden = false;
+  statsList.innerHTML = '<div class="statsEmpty">Загрузка…</div>';
+  try {
+    const res = await fetch('/api/stats.php?game=dance');
+    const data = await res.json();
+    if(data.ok && data.players.length > 0){
+      statsList.innerHTML = data.players.map((p, i) => `
+        <div class="statsRow">
+          <div class="pos">${i+1}</div>
+          <div class="pname">${escapeHtml(p.player_name)}</div>
+          <div class="pgames">${p.games_played} игр</div>
+          <div class="pscore">${p.best_score}</div>
+        </div>
+      `).join('');
+    } else {
+      statsList.innerHTML = '<div class="statsEmpty">Пока никто не играл — стань первой! 💃</div>';
+    }
+  } catch(e){
+    statsList.innerHTML = '<div class="statsEmpty">Не удалось загрузить статистику</div>';
+  }
+};
+
+document.getElementById('statsBackBtn').onclick = () => {
+  statsScreen.hidden = true;
+  startScreen.hidden = false;
+};
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 function currentPlayerName(){
   const name = (playerNameInput.value || '').trim().slice(0,16);
@@ -359,7 +447,7 @@ function startGame(){
 
   buildEvents();
   startTime = scheduleAudio();
-  songDuration = (leadInBeats+totalBeats)*beatSec + 1.5;
+  songDuration = ROUND_SECONDS;
 
   let count = leadInBeats;
   countdownEl.hidden = false;
