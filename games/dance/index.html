@@ -143,6 +143,25 @@
   .fx.show{animation:fxpop .45s ease forwards;}
   @keyframes fxpop{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-24px) scale(1.15);}}
 
+  .particle{
+    position:absolute;left:50%;bottom:16%;border-radius:50%;
+    pointer-events:none;
+    animation:burst .6s ease-out forwards;
+  }
+  @keyframes burst{
+    0%{transform:translate(-50%,50%) translate(0,0) scale(1);opacity:1;}
+    100%{transform:translate(-50%,50%) translate(var(--dx),var(--dy)) scale(.2);opacity:0;}
+  }
+  .spark{
+    position:absolute;left:50%;bottom:16%;width:3px;
+    pointer-events:none;border-radius:2px;
+    animation:sparkburst .5s ease-out forwards;
+  }
+  @keyframes sparkburst{
+    0%{transform:translate(-50%,50%) translate(0,0) rotate(var(--rot)) scaleY(1);opacity:1;}
+    100%{transform:translate(-50%,50%) translate(var(--dx),var(--dy)) rotate(var(--rot)) scaleY(.3);opacity:0;}
+  }
+
   .countdown{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:64px;font-weight:900;color:#fff;text-shadow:0 0 20px var(--purple);
@@ -560,6 +579,42 @@ function flashAvatar(cls){
   avatarGame.classList.add(cls);
 }
 
+function spawnBurst(lane, big){
+  const container = lanesEl.children[lane];
+  const laneColor = getComputedStyle(container).getPropertyValue('--lc').trim() || '#fff';
+
+  const dotCount = big ? 16 : 9;
+  for(let i=0;i<dotCount;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = Math.random()*Math.PI*2;
+    const dist = (big ? 45 : 28) + Math.random()*(big ? 45 : 26);
+    p.style.setProperty('--dx', (Math.cos(angle)*dist)+'px');
+    p.style.setProperty('--dy', (-Math.abs(Math.sin(angle))*dist)+'px');
+    const size = 4 + Math.random()*(big ? 6 : 4);
+    p.style.width = size+'px';
+    p.style.height = size+'px';
+    p.style.background = Math.random() < 0.4 ? 'var(--gold)' : laneColor;
+    container.appendChild(p);
+    setTimeout(() => p.remove(), 650);
+  }
+
+  const sparkCount = big ? 8 : 0;
+  for(let i=0;i<sparkCount;i++){
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const angle = Math.random()*Math.PI*2;
+    const dist = 40 + Math.random()*40;
+    s.style.setProperty('--dx', (Math.cos(angle)*dist)+'px');
+    s.style.setProperty('--dy', (-Math.abs(Math.sin(angle))*dist)+'px');
+    s.style.setProperty('--rot', (angle*180/Math.PI)+'deg');
+    s.style.height = (10+Math.random()*8)+'px';
+    s.style.background = 'var(--gold)';
+    container.appendChild(s);
+    setTimeout(() => s.remove(), 550);
+  }
+}
+
 function showFx(lane, text, color){
   const fx = document.getElementById('fx'+lane);
   fx.textContent = text;
@@ -593,12 +648,14 @@ function hitLane(lane){
     combo++;
     perfectCount++;
     showFx(lane, 'Perfect!', 'var(--gold)');
+    spawnBurst(lane, true);
     flashAvatar(combo >= 15 ? 'spinFast' : 'pop');
   } else if(bestDiff <= GOOD_WIN){
     score += 50 + combo;
     combo++;
     goodCount++;
     showFx(lane, 'Good', 'var(--good)');
+    spawnBurst(lane, false);
     flashAvatar('pop');
   } else {
     combo = 0;
