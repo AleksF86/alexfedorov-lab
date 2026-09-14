@@ -67,9 +67,12 @@
   .nameInput:focus{border-color:var(--purple);}
   .nameWarn{color:var(--gold);font-size:12px;margin:-12px 0 16px;min-height:14px;}
   .statsBtn{
-    margin-top:18px;background:none;border:1px solid var(--border);color:var(--muted);
-    padding:9px 18px;border-radius:10px;font-size:13px;cursor:pointer;
+    margin-top:18px;border:none;color:#fff;
+    background:linear-gradient(90deg,var(--cyan),var(--purple));
+    padding:13px 28px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;
+    box-shadow:0 6px 18px rgba(51,230,255,.35);
   }
+  .statsBtn:active{transform:translateY(1px);}
   .bigbtn{
     padding:16px 46px;border:none;border-radius:16px;
     background:linear-gradient(90deg,var(--pink),var(--purple));
@@ -204,6 +207,7 @@
     text-decoration:none;cursor:pointer;
   }
   .endbtns button.primary{background:linear-gradient(90deg,var(--pink),var(--purple));border:none;color:#fff;}
+  #endStatsBtn{background:linear-gradient(90deg,var(--cyan),var(--purple));border:none;color:#fff;box-shadow:0 4px 14px rgba(51,230,255,.3);}
 
   /* stats screen */
   #statsScreen{align-items:stretch;}
