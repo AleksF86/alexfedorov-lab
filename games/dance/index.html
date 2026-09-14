@@ -225,12 +225,12 @@
   .statrow div{text-align:center;}
   .statrow .num{font-size:22px;font-weight:800;}
   .statrow .lbl{font-size:11px;color:var(--muted);}
-  .endbtns{display:flex;gap:10px;}
+  .endbtns{display:flex;gap:8px;width:100%;}
   .endbtns button, .endbtns a{
-    flex:1;text-align:center;box-sizing:border-box;
-    font-family:inherit;padding:13px 12px;border-radius:12px;border:1px solid var(--border);
-    background:var(--panel2);color:var(--text);font-size:13px;font-weight:700;
-    text-decoration:none;cursor:pointer;white-space:nowrap;
+    flex:1;min-width:0;text-align:center;box-sizing:border-box;
+    font-family:inherit;padding:13px 6px;border-radius:12px;border:1px solid var(--border);
+    background:var(--panel2);color:var(--text);font-size:12px;font-weight:700;
+    text-decoration:none;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   #homeBtn{background:linear-gradient(90deg,var(--gold),var(--pink));border:none;color:#160c24;box-shadow:0 4px 14px rgba(245,210,63,.3);}
   .endbtns button.primary{background:linear-gradient(90deg,var(--pink),var(--purple));border:none;color:#fff;}
@@ -447,7 +447,7 @@ function playMissSound(){
 const BPM = 100;
 const beatSec = 60/BPM;
 const PRE_ROLL_SECONDS = 3;
-const totalBeats = 44;
+const totalBeats = 49;
 const ROUND_SECONDS = 30;
 const fallDuration = 1.1;
 const PERFECT_WIN = 0.09;
@@ -717,7 +717,7 @@ function startGame(){
 
   buildEvents();
   startTime = scheduleAudio();
-  songDuration = ROUND_SECONDS;
+  songDuration = PRE_ROLL_SECONDS + ROUND_SECONDS;
 
   let count = PRE_ROLL_SECONDS;
   countdownEl.hidden = false;
@@ -741,8 +741,9 @@ function loop(){
   const stageH = stage.clientHeight;
   const hitY = stageH * 0.84;
 
-  timeLeftEl.textContent = formatTime(songDuration - now);
-  timerFillEl.style.width = Math.min(100, Math.max(0,(now/songDuration)*100)) + '%';
+  const playNow = Math.max(0, now - PRE_ROLL_SECONDS);
+  timeLeftEl.textContent = formatTime(ROUND_SECONDS - playNow);
+  timerFillEl.style.width = Math.min(100, Math.max(0,(playNow/ROUND_SECONDS)*100)) + '%';
 
   events.forEach((e, idx) => {
     const remaining = e.time - now;
